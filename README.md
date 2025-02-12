@@ -1,6 +1,6 @@
 # FolderThumbnailFix
 
-[![image](https://github.com/LesFerch/WinSetView/assets/79026235/0188480f-ca53-45d5-b9ff-daafff32869e)Download the zip file](https://github.com/LesFerch/FolderThumbnailFix/releases/download/1.0.1/FolderThumbnailFix.zip)
+[![image](https://github.com/LesFerch/WinSetView/assets/79026235/0188480f-ca53-45d5-b9ff-daafff32869e)Download the zip file](https://github.com/LesFerch/FolderThumbnailFix/releases/download/1.0.2/FolderThumbnailFix.zip)
 
 ## How to Download and Run
 
