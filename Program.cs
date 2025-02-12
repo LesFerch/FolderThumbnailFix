@@ -41,6 +41,8 @@ namespace FolderThumbnailFix
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            UnblockPath(myPath);
+
             ctrlKey = (GetAsyncKeyState(0x11) & 0x8000) != 0;
 
             string NTkey = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion";
@@ -84,6 +86,28 @@ namespace FolderThumbnailFix
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
 
+        [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool DeleteFile(string name);
+
+        public static void UnblockPath(string path)
+        {
+            string[] files = System.IO.Directory.GetFiles(path);
+            string[] dirs = System.IO.Directory.GetDirectories(path);
+            foreach (string file in files)
+            {
+                UnblockFile(file);
+            }
+            foreach (string dir in dirs)
+            {
+                UnblockPath(dir);
+            }
+        }
+
+        public static bool UnblockFile(string fileName)
+        {
+            return DeleteFile(fileName + ":Zone.Identifier");
+        }
         static void InstallRemove()
         {
             DialogResult result = TwoChoiceBox.Show(sSetup, myName, "", "");
@@ -163,7 +187,7 @@ namespace FolderThumbnailFix
 
             Thread.Sleep(100);
             proc = Process.GetProcessesByName("TrustedInstaller");
-            TrustedInstaller.Run(proc[0].Id, $"{ResourceHacker} -open {munFile} -save {munFile} -resource {icon} -action addoverwrite -mask icongroup,6,1033");
+            TrustedInstaller.Run(proc[0].Id, $"\"{ResourceHacker}\" -open {munFile} -save {munFile} -resource \"{icon}\" -action addoverwrite -mask icongroup,6,1033");
         }
 
         // Get current screen scaling factor
