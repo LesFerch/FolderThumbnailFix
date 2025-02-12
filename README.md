@@ -23,6 +23,8 @@ You can also use the tool to undo the change and switch back to the default half
 
 FolderThumbnailFix does not install any software. It simply replaces the icon mask in the file `C:\Windows\SystemResources\imageres.dll.mun` with a transparent icon.
 
+**Note**: Sometimes the `imageres.dll.mun` file is in use, causing the icon change to fail. You won't get an error. It just won't change. Try again and it should work.
+
 ## Command line
 
 In addition to the GUI shown above, you can also change the folder icon mask from the command line. Use the `/install` argument to apply the transparent icon. Use the `/remove` argument to return to the half-cover icon.
