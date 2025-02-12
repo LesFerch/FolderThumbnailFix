@@ -281,6 +281,14 @@ namespace FolderThumbnailFix
                     BackColor = Color.FromArgb(32, 32, 32);
                     ForeColor = Color.White;
                 }
+
+                if (Dark)
+                {
+                    DarkTitleBar(Handle);
+                    BackColor = Color.FromArgb(32, 32, 32);
+                    ForeColor = Color.White;
+                }
+
                 Controls.Add(buttonHelp);
                 Controls.Add(buttonOK);
                 Controls.Add(messageLabel);
@@ -357,7 +365,9 @@ namespace FolderThumbnailFix
                     g.DrawImage(image, 0, 0, (int)(26 * ScaleFactor), (int)(26 * ScaleFactor));
                 }
 
-                image = Image.FromFile($@"{appParts}\Icons\Question_.png");
+                string hoverImage = "QuestionL.png";
+                if (Dark) hoverImage = "QuestionD.png";
+                image = Image.FromFile($@"{appParts}\Icons\{hoverImage}");
                 imageHelpHover = new Bitmap((int)(26 * ScaleFactor), (int)(26 * ScaleFactor));
                 using (Graphics g = Graphics.FromImage(imageHelpHover))
                 {
@@ -386,7 +396,9 @@ namespace FolderThumbnailFix
                     g.DrawImage(image, 0, 0, (int)(96 * ScaleFactor), (int)(96 * ScaleFactor));
                 }
 
-                image = Image.FromFile($@"{appParts}\Icons\ThumbFull_.png");
+                hoverImage = "ThumbFullL.png";
+                if (Dark) hoverImage = "ThumbFullD.png";
+                image = Image.FromFile($@"{appParts}\Icons\{hoverImage}");
                 imageYesHover = new Bitmap((int)(96 * ScaleFactor), (int)(96 * ScaleFactor));
                 using (Graphics g = Graphics.FromImage(imageYesHover))
                 {
@@ -416,7 +428,9 @@ namespace FolderThumbnailFix
                     g.DrawImage(image, 0, 0, (int)(96 * ScaleFactor), (int)(96 * ScaleFactor));
                 }
 
-                image = Image.FromFile($@"{appParts}\Icons\ThumbHalf_.png");
+                hoverImage = "ThumbHalfL.png";
+                if (Dark) hoverImage = "ThumbHalfD.png";
+                image = Image.FromFile($@"{appParts}\Icons\{hoverImage}");
                 imageNoHover = new Bitmap((int)(96 * ScaleFactor), (int)(96 * ScaleFactor));
                 using (Graphics g = Graphics.FromImage(imageNoHover))
                 {
@@ -435,6 +449,14 @@ namespace FolderThumbnailFix
                 buttonNo.Left = ClientSize.Width - (int)(108 * ScaleFactor);
                 buttonNo.Top = ClientSize.Height - buttonYes.Height;
                 buttonNo.Click += (s, e) => { this.DialogResult = DialogResult.No; this.Close(); };
+
+
+                if (Dark)
+                {
+                    DarkTitleBar(Handle);
+                    BackColor = Color.FromArgb(32, 32, 32);
+                    ForeColor = Color.White;
+                }
 
                 Controls.Add(buttonHelp);
                 Controls.Add(buttonYes);
