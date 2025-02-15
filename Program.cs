@@ -69,13 +69,19 @@ namespace FolderThumbnailFix
                     break;
 
                 case "/installtrusted":
+                    KillExplorer();
+                    Thread.Sleep(1000);
                     ReplaceIcon(iconFull);
-                    RestartExplorer();
+                    Thread.Sleep(1000);
+                    ResetThumbCache();
                     break;
 
                 case "/removetrusted":
+                    KillExplorer();
+                    Thread.Sleep(1000);
                     ReplaceIcon(iconHalf);
-                    RestartExplorer();
+                    Thread.Sleep(1000);
+                    ResetThumbCache();
                     break;
 
                 default:
@@ -92,8 +98,8 @@ namespace FolderThumbnailFix
 
         public static void UnblockPath(string path)
         {
-            string[] files = System.IO.Directory.GetFiles(path);
-            string[] dirs = System.IO.Directory.GetDirectories(path);
+            string[] files = Directory.GetFiles(path);
+            string[] dirs = Directory.GetDirectories(path);
             foreach (string file in files)
             {
                 UnblockFile(file);
@@ -134,7 +140,7 @@ namespace FolderThumbnailFix
             p.WaitForExit();
         }
 
-        static void RestartExplorer()
+        static void KillExplorer()
         {
             using (Process p = new Process())
             {
@@ -149,11 +155,10 @@ namespace FolderThumbnailFix
                 p.Start();
                 p.WaitForExit();
             }
-
-            Thread.Sleep(2000);
-
+        }
+        static void ResetThumbCache()
+        {
             DeleteCacheFiles("thumbcache_*.db");
-
             Process.Start("explorer.exe");
         }
 
