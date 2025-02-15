@@ -25,7 +25,7 @@ FolderThumbnailFix does not install any software. It simply replaces the mask ic
 
 ## Command line
 
-In addition to the GUI shown above, you can also change the folder icon mask from the command line. Use the `/install` argument to apply the transparent icon. Use the `/remove` argument to return to the half-cover icon.
+In addition to the GUI shown above, you can also change the folder mask icon from the command line. Use the `/install` argument to apply the transparent icon. Use the `/remove` argument to return to the half-cover icon.
 
 ## Credits
 
