@@ -21,7 +21,7 @@ This tool patches Windows 11 so that folder thumbnails are the full size of the 
 
 You can also use the tool to undo the change and switch back to the default half-covered thumbnails.
 
-FolderThumbnailFix does not install any software. It simply replaces the icon mask in the file `C:\Windows\SystemResources\imageres.dll.mun` with a transparent icon.
+FolderThumbnailFix does not install any software. It simply replaces the mask icon in the file `C:\Windows\SystemResources\imageres.dll.mun` with a transparent icon.
 
 ## Command line
 
