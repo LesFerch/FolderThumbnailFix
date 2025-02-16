@@ -21,6 +21,7 @@ namespace FolderThumbnailFix
         static string myIcon = $@"{Icons}\{myName}.ico";
         static string iconFull = $@"{Icons}\Transparent.ico";
         static string iconHalf = $@"{Icons}\HalfMask.ico";
+        static string HandleExe = $@"{appParts}\Handle.exe";
         static string ResourceHacker = $@"{appParts}\ResourceHacker\ResourceHacker.exe";
         static string munFile = @"C:\Windows\SystemResources\imageres.dll.mun";
         static string Option = "";
@@ -71,6 +72,9 @@ namespace FolderThumbnailFix
                 case "/installtrusted":
                     KillExplorer();
                     Thread.Sleep(1000);
+                    //AllocConsole();
+                    CloseHandles();
+                    Thread.Sleep(1000);
                     ReplaceIcon(iconFull);
                     Thread.Sleep(1000);
                     ResetThumbCache();
@@ -78,6 +82,9 @@ namespace FolderThumbnailFix
 
                 case "/removetrusted":
                     KillExplorer();
+                    Thread.Sleep(1000);
+                    //AllocConsole();
+                    CloseHandles();
                     Thread.Sleep(1000);
                     ReplaceIcon(iconHalf);
                     Thread.Sleep(1000);
@@ -88,6 +95,10 @@ namespace FolderThumbnailFix
                     return;
             }
         }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool AllocConsole();
 
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
@@ -239,6 +250,57 @@ namespace FolderThumbnailFix
             var preference = Convert.ToInt32(true);
             DwmSetWindowAttribute(hWnd, DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE, ref preference, sizeof(uint));
 
+        }
+        public static void CloseHandles()
+        {
+            string tempFile = Path.GetTempFileName();
+
+            // Run Handle.exe to get handles
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = HandleExe,
+                Arguments = $"-nobanner {munFile}",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+            Process p = Process.Start(psi);
+
+            string output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+
+            File.WriteAllText(tempFile, output);
+
+            // Split the output into lines
+            string[] lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string line in lines)
+            {
+                // Split the line into parts
+                string[] parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length >= 5)
+                {
+                    // Extract the PID and handle ID
+                    string pid = parts[2];
+                    string handleId = parts[5];
+                    handleId = handleId.TrimEnd(':');
+
+                    Console.WriteLine($"Closing handle {handleId} for process {pid}");
+
+                    // Run Handle.exe to close each handle
+                    ProcessStartInfo closeHandlePsi = new ProcessStartInfo
+                    {
+                        FileName = HandleExe,
+                        Arguments = $"-nobanner -p {pid} -c {handleId} -y",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    Process closeHandleProcess = Process.Start(closeHandlePsi);
+                    closeHandleProcess.WaitForExit();
+                }
+            }
+            File.Delete(tempFile);
         }
 
         // Dialog for simple OK messages
@@ -544,7 +606,6 @@ namespace FolderThumbnailFix
             Process.Start("https://lesferch.github.io/FolderThumbnailFix#" + helpPage);
         }
     }
-
 
     //Credit for the following TrustedInstaller code: https://github.com/rara64/GetTrustedInstaller
     class TrustedInstaller
