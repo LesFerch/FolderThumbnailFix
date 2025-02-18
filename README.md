@@ -25,7 +25,7 @@ FolderThumbnailFix does not install any software. It simply replaces the mask ic
 
 **Note**: If the thumbnail does not change, sign out, sign in (don't restart) and try again.
 
-**Note**: In order to make the change, the Explorer process is killed, so you will see a black screen until Explorer restarts. Windows 11 can sometimes take a long time to restart Explorer. Delays of 30 seconds are not uncommon. If Explorer has not restarted after a minute you can hit `Ctrl-Alt-Del` (and then restart it via Task Manager or sign out and sign in).
+**Note**: In order to make the change, the Explorer process is killed, so you will see a black screen until Explorer restarts. Windows 11 can sometimes take a long time to restart Explorer (I've observed delays over 30 seconds). If Explorer has not restarted after a minute you can hit `Ctrl-Alt-Del` (and then restart it via Task Manager or sign out and sign in).
 
 ## Command line
 
