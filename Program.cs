@@ -35,64 +35,76 @@ namespace FolderThumbnailFix
         static bool ctrlKey = false;
 
         static string helpPage = "what-it-does";
+
         [STAThread]
         static void Main(string[] args)
         {
-            Directory.SetCurrentDirectory(@"C:\");
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
-            UnblockPath(myPath);
-
-            ctrlKey = (GetAsyncKeyState(0x11) & 0x8000) != 0;
-
-            string NTkey = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion";
-            int buildNumber = int.Parse(Registry.GetValue(NTkey, "CurrentBuild", "").ToString());
-
-            if (!ctrlKey && buildNumber < 21996)
+            try
             {
-                CustomMessageBox.Show(sBuildError, myName);
-                return;
-            }
+                Directory.SetCurrentDirectory(@"C:\");
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
 
-            if (args.Length == 0) { InstallRemove(); return; }
+                UnblockPath(myPath);
 
-            Option = args[0];
+                ctrlKey = (GetAsyncKeyState(0x11) & 0x8000) != 0;
 
-            switch (Option.ToLower())
-            {
-                case "/install":
-                    RunUAC(myExe, "/installTrusted");
-                    break;
+                string NTkey = @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion";
+                int buildNumber = int.Parse(Registry.GetValue(NTkey, "CurrentBuild", "").ToString());
 
-                case "/remove":
-                    RunUAC(myExe, "/removeTrusted");
-                    break;
-
-                case "/installtrusted":
-                    KillExplorer();
-                    Thread.Sleep(1000);
-                    //AllocConsole();
-                    CloseHandles();
-                    Thread.Sleep(1000);
-                    ReplaceIcon(iconFull);
-                    Thread.Sleep(1000);
-                    ResetThumbCache();
-                    break;
-
-                case "/removetrusted":
-                    KillExplorer();
-                    Thread.Sleep(1000);
-                    //AllocConsole();
-                    CloseHandles();
-                    Thread.Sleep(1000);
-                    ReplaceIcon(iconHalf);
-                    Thread.Sleep(1000);
-                    ResetThumbCache();
-                    break;
-
-                default:
+                if (!ctrlKey && buildNumber < 21996)
+                {
+                    CustomMessageBox.Show(sBuildError, myName);
                     return;
+                }
+
+                if (args.Length == 0) { InstallRemove(); return; }
+
+                Option = args[0];
+
+                switch (Option.ToLower())
+                {
+                    case "/install":
+                        RunUAC(myExe, "/installTrusted");
+                        break;
+
+                    case "/remove":
+                        RunUAC(myExe, "/removeTrusted");
+                        break;
+
+                    case "/installtrusted":
+                        KillExplorer();
+                        Thread.Sleep(1000);
+                        //AllocConsole();
+                        CloseHandles();
+                        Thread.Sleep(1000);
+                        ReplaceIcon(iconFull);
+                        Thread.Sleep(1000);
+                        ResetThumbCache();
+                        break;
+
+                    case "/removetrusted":
+                        KillExplorer();
+                        Thread.Sleep(1000);
+                        //AllocConsole();
+                        CloseHandles();
+                        Thread.Sleep(1000);
+                        ReplaceIcon(iconHalf);
+                        Thread.Sleep(1000);
+                        ResetThumbCache();
+                        break;
+
+                    default:
+                        return;
+                }
+            }
+            catch (Exception ex)
+            {
+                AllocConsole();
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                Console.WriteLine("Press Enter to exit...");
+                Console.ReadLine();
+                Process.Start("explorer.exe");
             }
         }
 
@@ -255,6 +267,8 @@ namespace FolderThumbnailFix
         {
             string tempFile = Path.GetTempFileName();
 
+            HandleEULA();
+
             // Run Handle.exe to get handles
             ProcessStartInfo psi = new ProcessStartInfo
             {
@@ -279,7 +293,7 @@ namespace FolderThumbnailFix
                 // Split the line into parts
                 string[] parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-                if (parts.Length >= 5)
+                if (parts.Length > 5)
                 {
                     // Extract the PID and handle ID
                     string pid = parts[2];
@@ -301,6 +315,23 @@ namespace FolderThumbnailFix
                 }
             }
             File.Delete(tempFile);
+        }
+
+        static void HandleEULA()
+        {
+            const string subkey = @"Software\Sysinternals\Handle";
+
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(subkey))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("EulaAccepted", 1, RegistryValueKind.DWord);
+                    }
+                }
+            }
+            catch { }
         }
 
         // Dialog for simple OK messages
