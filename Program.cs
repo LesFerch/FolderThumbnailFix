@@ -100,11 +100,11 @@ namespace FolderThumbnailFix
             }
             catch (Exception ex)
             {
+                Process.Start("explorer.exe");
                 AllocConsole();
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 Console.WriteLine("Press Enter to exit...");
                 Console.ReadLine();
-                Process.Start("explorer.exe");
             }
         }
 
