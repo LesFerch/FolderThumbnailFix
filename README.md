@@ -1,6 +1,6 @@
 # FolderThumbnailFix
 
-[![image](https://github.com/LesFerch/WinSetView/assets/79026235/0188480f-ca53-45d5-b9ff-daafff32869e)Download the zip file](https://github.com/LesFerch/FolderThumbnailFix/releases/download/1.0.5/FolderThumbnailFix.zip)
+[![image](https://github.com/LesFerch/WinSetView/assets/79026235/0188480f-ca53-45d5-b9ff-daafff32869e)Download the zip file](https://github.com/LesFerch/FolderThumbnailFix/releases/download/1.0.6/FolderThumbnailFix.zip)
 
 ## How to Download and Run
 
@@ -21,7 +21,7 @@ This tool patches Windows 11 so that folder thumbnails are the full size of the 
 
 You can also use the tool to undo the change and switch back to the default half-covered thumbnails.
 
-FolderThumbnailFix does not install any software. It simply replaces the mask icon in the file `C:\Windows\SystemResources\imageres.dll.mun` with a transparent icon.
+FolderThumbnailFix does not install any software. It simply replaces the mask icon with a transparent icon in the file `C:\Windows\SystemResources\imageres.dll.mun`
 
 **Note**: If the thumbnail does not change, sign out, sign in (don't restart) and try again.
 
