@@ -8,6 +8,8 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Threading;
+using System.Collections.Generic;
+using System.Text;
 
 namespace FolderThumbnailFix
 {
@@ -74,8 +76,7 @@ namespace FolderThumbnailFix
 
                     case "/installtrusted":
                         KillExplorer();
-                        Thread.Sleep(1000);
-                        //AllocConsole();
+                        AllocConsole();
                         CloseHandles();
                         Thread.Sleep(1000);
                         ReplaceIcon(iconFull);
@@ -85,8 +86,7 @@ namespace FolderThumbnailFix
 
                     case "/removetrusted":
                         KillExplorer();
-                        Thread.Sleep(1000);
-                        //AllocConsole();
+                        AllocConsole();
                         CloseHandles();
                         Thread.Sleep(1000);
                         ReplaceIcon(iconHalf);
@@ -100,11 +100,17 @@ namespace FolderThumbnailFix
             }
             catch (Exception ex)
             {
-                Process.Start("explorer.exe");
                 AllocConsole();
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 Console.WriteLine("Press Enter to exit...");
                 Console.ReadLine();
+            }
+            finally
+            {
+                if (Process.GetProcessesByName("explorer").Length == 0)
+                {
+                    Process.Start("explorer.exe");
+                }
             }
         }
 
@@ -118,6 +124,22 @@ namespace FolderThumbnailFix
         [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DeleteFile(string name);
+
+        const int LIST_MODULES_ALL = 3;
+        const uint PROCESS_QUERY_INFORMATION = 0x0400;
+        const uint PROCESS_VM_READ = 0x0010;
+
+        [DllImport("psapi.dll", SetLastError = true)]
+        static extern bool EnumProcessModulesEx(IntPtr hProcess, IntPtr[] lphModule, uint cb, out uint lpcbNeeded, uint dwFilterFlag);
+
+        [DllImport("psapi.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, StringBuilder lpFilename, uint nSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool CloseHandle(IntPtr hObject);
 
         public static void UnblockPath(string path)
         {
@@ -182,7 +204,6 @@ namespace FolderThumbnailFix
         static void ResetThumbCache()
         {
             DeleteCacheFiles("thumbcache_*.db");
-            Process.Start("explorer.exe");
         }
 
         static void DeleteCacheFiles(string searchPattern)
@@ -204,6 +225,8 @@ namespace FolderThumbnailFix
 
         static void ReplaceIcon(string icon)
         {
+            Console.WriteLine("Attempting to replace mask icon in file imageres.dll.mun...");
+
             ServiceController sc = new ServiceController
             {
                 ServiceName = "TrustedInstaller",
@@ -265,74 +288,73 @@ namespace FolderThumbnailFix
         }
         public static void CloseHandles()
         {
-            string tempFile = Path.GetTempFileName();
+            AllocConsole();
+            string targetFile = munFile.ToLower();
+            List<int> pidsToKill = new List<int>();
 
-            HandleEULA();
+            Console.WriteLine("Checking for processes with a handle to imageres.dll.mun...\n");
 
-            // Run Handle.exe to get handles
-            ProcessStartInfo psi = new ProcessStartInfo
+            foreach (Process proc in Process.GetProcesses())
             {
-                FileName = HandleExe,
-                Arguments = $"-nobanner {munFile}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            };
-            Process p = Process.Start(psi);
+                IntPtr hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, proc.Id);
+                if (hProcess == IntPtr.Zero)
+                    continue;
 
-            string output = p.StandardOutput.ReadToEnd();
-            p.WaitForExit();
-
-            File.WriteAllText(tempFile, output);
-
-            // Split the output into lines
-            string[] lines = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (string line in lines)
-            {
-                // Split the line into parts
-                string[] parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                if (parts.Length > 5)
+                try
                 {
-                    // Extract the PID and handle ID
-                    string pid = parts[2];
-                    string handleId = parts[5];
-                    handleId = handleId.TrimEnd(':');
+                    uint needed;
+                    IntPtr[] modules = new IntPtr[1024];
 
-                    Console.WriteLine($"Closing handle {handleId} for process {pid}");
-
-                    // Run Handle.exe to close each handle
-                    ProcessStartInfo closeHandlePsi = new ProcessStartInfo
+                    if (EnumProcessModulesEx(hProcess, modules, (uint)(IntPtr.Size * modules.Length), out needed, LIST_MODULES_ALL))
                     {
-                        FileName = HandleExe,
-                        Arguments = $"-nobanner -p {pid} -c {handleId} -y",
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                    Process closeHandleProcess = Process.Start(closeHandlePsi);
-                    closeHandleProcess.WaitForExit();
+                        int moduleCount = (int)(needed / IntPtr.Size);
+
+                        for (int i = 0; i < moduleCount; i++)
+                        {
+                            StringBuilder modulePath = new StringBuilder(1024);
+                            if (GetModuleFileNameEx(hProcess, modules[i], modulePath, (uint)modulePath.Capacity) > 0)
+                            {
+                                string moduleName = modulePath.ToString().ToLower();
+                                if (moduleName == targetFile)
+                                {
+                                    Console.WriteLine($"Found: PID {proc.Id}, Process Name: {proc.ProcessName}");
+                                    pidsToKill.Add(proc.Id);
+                                    break; // Move to the next process
+                                }
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    CloseHandle(hProcess);
                 }
             }
-            File.Delete(tempFile);
-        }
 
-        static void HandleEULA()
-        {
-            const string subkey = @"Software\Sysinternals\Handle";
-
-            try
+            if (pidsToKill.Count > 0)
             {
-                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(subkey))
+                Console.WriteLine("\nPress Enter to kill the listed processes and continue...");
+                Console.ReadLine();
+
+                foreach (int pid in pidsToKill)
                 {
-                    if (key != null)
+                    try
                     {
-                        key.SetValue("EulaAccepted", 1, RegistryValueKind.DWord);
+                        Process.Start("taskkill", $"/PID {pid} /F").WaitForExit();
+                        Console.WriteLine($"Killed PID {pid}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to kill PID {pid}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        Console.WriteLine();
                     }
                 }
             }
-            catch { }
         }
+
 
         // Dialog for simple OK messages
         public class CustomMessageBox : Form
