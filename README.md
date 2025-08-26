@@ -23,7 +23,7 @@ You can also use the tool to undo the change and switch back to the default half
 
 FolderThumbnailFix does not install any software. It simply replaces the mask icon with a transparent icon in the file `C:\Windows\SystemResources\imageres.dll.mun`
 
-**Note**: If the thumbnail does not change, sign out, sign in (don't restart) and try again. If the icon still does not change, start up Windows in [Safe Mode](https://www.elevenforum.com/t/boot-to-safe-mode-in-windows-11.538/) and run the tool again. In Safe Mode, there will be no apps running that could lock out the resource that needs to be replaced.
+**Note**: If the thumbnail does not change, sign out, sign in (don't restart) and try again. If the icon still does not change, start up Windows in [Safe Mode Command Prompt (option 6)](https://www.elevenforum.com/t/boot-to-safe-mode-in-windows-11.538/) and run the tool again by entering its full path at the command line (e.g. C:\users\yourid\downloads\folderthumbnailfix\folderthumbnailfix.exe). In Safe Mode Command Prompt, there will be no apps running (including Explorer) that could lock out the resource that needs to be replaced.
 
 **Note**: In order to make the change, the Explorer process is killed, so you will see a black screen until Explorer restarts. Windows 11 can sometimes take a long time to restart Explorer (I've observed delays over 30 seconds). If Explorer has not restarted after a minute you can hit `Ctrl-Alt-Del` (and then restart it via Task Manager or sign out and sign in).
 
