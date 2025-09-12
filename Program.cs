@@ -8,7 +8,6 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Threading;
-using System.Collections.Generic;
 using System.Text;
 
 namespace FolderThumbnailFix
@@ -23,9 +22,11 @@ namespace FolderThumbnailFix
         static string myIcon = $@"{Icons}\{myName}.ico";
         static string iconFull = $@"{Icons}\Transparent.ico";
         static string iconHalf = $@"{Icons}\HalfMask.ico";
-        static string HandleExe = $@"{appParts}\Handle.exe";
         static string ResourceHacker = $@"{appParts}\ResourceHacker\ResourceHacker.exe";
         static string munFile = @"C:\Windows\SystemResources\imageres.dll.mun";
+        static string oldFile = @"C:\Windows\SystemResources\imageres.dll.mun.old";
+        static string newFile = @"C:\Windows\SystemResources\imageres.dll.mun.new";
+        static string tempFile = Path.Combine(Path.GetTempPath(), "imageres.dll.mun");
         static string Option = "";
 
         static string sSetup = "Select thumbnail style:";
@@ -67,36 +68,47 @@ namespace FolderThumbnailFix
                 switch (Option.ToLower())
                 {
                     case "/install":
-                        RunUAC(myExe, "/installTrusted");
+                        RunUAC(myExe, "/installUAC");
                         break;
 
                     case "/remove":
-                        RunUAC(myExe, "/removeTrusted");
+                        RunUAC(myExe, "/removeUAC");
+                        break;
+
+                    case "/installuac":
+                        KillExplorer();
+                        RunMeTrusted("/InstallTrusted");
+                        Thread.Sleep(1000);
+                        ResetThumbCache();
+                        Thread.Sleep(1000);
+                        Process.Start("explorer.exe");
+                        break;
+
+                    case "/removeuac":
+                        KillExplorer();
+                        RunMeTrusted("/RemoveTrusted");
+                        Thread.Sleep(1000);
+                        ResetThumbCache();
+                        Thread.Sleep(1000);
+                        Process.Start("explorer.exe");
                         break;
 
                     case "/installtrusted":
-                        KillExplorer();
-                        AllocConsole();
-                        CloseHandles();
-                        Thread.Sleep(1000);
                         ReplaceIcon(iconFull);
-                        Thread.Sleep(1000);
-                        ResetThumbCache();
                         break;
 
                     case "/removetrusted":
-                        KillExplorer();
-                        AllocConsole();
-                        CloseHandles();
-                        Thread.Sleep(1000);
                         ReplaceIcon(iconHalf);
-                        Thread.Sleep(1000);
-                        ResetThumbCache();
                         break;
 
                     default:
                         return;
                 }
+            }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+            {
+                // UAC prompt was canceled by the user; do nothing and exit silently.
+                return;
             }
             catch (Exception ex)
             {
@@ -104,13 +116,6 @@ namespace FolderThumbnailFix
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 Console.WriteLine("Press Enter to exit...");
                 Console.ReadLine();
-            }
-            finally
-            {
-                if (Process.GetProcessesByName("explorer").Length == 0)
-                {
-                    Process.Start("explorer.exe");
-                }
             }
         }
 
@@ -165,11 +170,11 @@ namespace FolderThumbnailFix
 
             if (result == DialogResult.Yes)
             {
-                RunUAC(myExe, "/installTrusted");
+                RunUAC(myExe, "/installUAC");
             }
             if (result == DialogResult.No)
             {
-                RunUAC(myExe, "/removeTrusted");
+                RunUAC(myExe, "/removeUAC");
             }
         }
 
@@ -223,10 +228,8 @@ namespace FolderThumbnailFix
             catch { }
         }
 
-        static void ReplaceIcon(string icon)
+        static void RunMeTrusted(string action)
         {
-            Console.WriteLine("Attempting to replace mask icon in file imageres.dll.mun...");
-
             ServiceController sc = new ServiceController
             {
                 ServiceName = "TrustedInstaller",
@@ -236,9 +239,48 @@ namespace FolderThumbnailFix
 
             Process[] proc = Process.GetProcessesByName("TrustedInstaller");
 
-            Thread.Sleep(100);
             proc = Process.GetProcessesByName("TrustedInstaller");
-            TrustedInstaller.Run(proc[0].Id, $"\"{ResourceHacker}\" -open {munFile} -save {munFile} -resource \"{icon}\" -action addoverwrite -mask icongroup,6,1033");
+            TrustedInstaller.Run(proc[0].Id, $"\"{myExe}\" {action}");
+        }
+
+        static void ReplaceIcon(string icon)
+        {
+            try
+            {
+                File.Copy(munFile, tempFile, true);
+
+                Process p = new Process();
+                p.StartInfo.FileName = ResourceHacker;
+                p.StartInfo.Arguments = $" -open {tempFile} -save {tempFile} -resource \"{icon}\" -action addoverwrite -mask icongroup,6,1033";
+                p.StartInfo.UseShellExecute = true;
+                p.StartInfo.CreateNoWindow = true;
+                p.Start();
+                p.WaitForExit();
+
+                Thread.Sleep(500);
+
+                File.Copy(tempFile, newFile, true);
+
+                if (File.Exists(newFile))
+                {
+                    if (File.Exists(oldFile)) File.Delete(oldFile);
+                    File.Move(munFile, oldFile);
+                    File.Move(newFile, munFile);
+                    File.Delete(oldFile);
+                }
+                else
+                {
+                    AllocConsole();
+                    Console.WriteLine("Copy to .new failed. Aborting renames.");
+                    Console.ReadLine();
+                }
+            }
+            catch (Exception ex)
+            {
+                AllocConsole();
+                Console.WriteLine("Error: " + ex.Message);
+                Console.ReadLine();
+            }
         }
 
         // Get current screen scaling factor
@@ -286,75 +328,6 @@ namespace FolderThumbnailFix
             DwmSetWindowAttribute(hWnd, DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE, ref preference, sizeof(uint));
 
         }
-        public static void CloseHandles()
-        {
-            AllocConsole();
-            string targetFile = munFile.ToLower();
-            List<int> pidsToKill = new List<int>();
-
-            Console.WriteLine("Checking for processes with a handle to imageres.dll.mun...\n");
-
-            foreach (Process proc in Process.GetProcesses())
-            {
-                IntPtr hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, proc.Id);
-                if (hProcess == IntPtr.Zero)
-                    continue;
-
-                try
-                {
-                    uint needed;
-                    IntPtr[] modules = new IntPtr[1024];
-
-                    if (EnumProcessModulesEx(hProcess, modules, (uint)(IntPtr.Size * modules.Length), out needed, LIST_MODULES_ALL))
-                    {
-                        int moduleCount = (int)(needed / IntPtr.Size);
-
-                        for (int i = 0; i < moduleCount; i++)
-                        {
-                            StringBuilder modulePath = new StringBuilder(1024);
-                            if (GetModuleFileNameEx(hProcess, modules[i], modulePath, (uint)modulePath.Capacity) > 0)
-                            {
-                                string moduleName = modulePath.ToString().ToLower();
-                                if (moduleName == targetFile)
-                                {
-                                    Console.WriteLine($"Found: PID {proc.Id}, Process Name: {proc.ProcessName}");
-                                    pidsToKill.Add(proc.Id);
-                                    break; // Move to the next process
-                                }
-                            }
-                        }
-                    }
-                }
-                finally
-                {
-                    CloseHandle(hProcess);
-                }
-            }
-
-            if (pidsToKill.Count > 0)
-            {
-                Console.WriteLine("\nPress Enter to kill the listed processes and continue...");
-                Console.ReadLine();
-
-                foreach (int pid in pidsToKill)
-                {
-                    try
-                    {
-                        Process.Start("taskkill", $"/PID {pid} /F").WaitForExit();
-                        Console.WriteLine($"Killed PID {pid}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to kill PID {pid}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        Console.WriteLine();
-                    }
-                }
-            }
-        }
-
 
         // Dialog for simple OK messages
         public class CustomMessageBox : Form
