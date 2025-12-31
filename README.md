@@ -27,6 +27,8 @@ FolderThumbnailFix does not install any software. It simply replaces the mask ic
 
 **Note**: In order to make the change, the Explorer process is killed, so you will see a black screen until Explorer restarts. Windows 11 can sometimes take a long time to restart Explorer (I've observed delays over 30 seconds). If Explorer has not restarted after a minute you can hit `Ctrl-Alt-Del` (and then restart it via Task Manager or sign out and sign in).
 
+**Note**: A major Windows update, a repair via Windows Update, or running `SFC /scannow` will restore the `imageres.dll.mun` file causing the fix to be undone. You may still see full size thumnails on existing folders until the thumbnail cache is reset. Just run the fix again to restore full size folder thumbnails everywhere.
+
 ## Command line
 
 In addition to the GUI shown above, you can also change the folder mask icon from the command line. Use the `/install` argument to apply the transparent icon. Use the `/remove` argument to return to the half-cover icon.
