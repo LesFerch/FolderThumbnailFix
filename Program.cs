@@ -251,7 +251,7 @@ namespace FolderThumbnailFix
 
                 Process p = new Process();
                 p.StartInfo.FileName = ResourceHacker;
-                p.StartInfo.Arguments = $" -open {tempFile} -save {tempFile} -resource \"{icon}\" -action addoverwrite -mask icongroup,6,1033";
+                p.StartInfo.Arguments = $" -open \"{tempFile}\" -save \"{tempFile}\" -resource \"{icon}\" -action addoverwrite -mask icongroup,6,1033";
                 p.StartInfo.UseShellExecute = true;
                 p.StartInfo.CreateNoWindow = true;
                 p.Start();
